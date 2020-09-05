@@ -26,7 +26,7 @@ static RT_SEM semCons;
 #define C10MSEC 10000000 // 10ms en nano-sec //
 #define BUFFER_SIZE 650  // Taille du buffer partagé //
 
-int flag = 0;
+////int flag = 0;
 
 int sharedBuffer_01[BUFFER_SIZE];
 int sharedBuffer_02[BUFFER_SIZE];
@@ -49,10 +49,13 @@ static void fct_cons(void *parameter){
 		//ATTENTION PAS DE PRINTF DANS LE PROJET
 		if( buffNum == 1 ){
 //			printf("CONS: Je consomme la case #%d du buffer #%d: %d!\n", i_cons, buffNum, sharedBuffer_01[i_cons]);
+
 		}else if( buffNum == 2 ){
 //			printf("CONS: Je consomme la case #%d du buffer #%d: %d!\n", i_cons, buffNum, sharedBuffer_02[i_cons]);
+
 		}else if( buffNum == 3 ){
 //			printf("CONS: Je consomme la case #%d du buffer #%d: %d!\n", i_cons, buffNum, sharedBuffer_03[i_cons]);
+
 		}
 		//TODO (ENVOIE DES TABLEAUX DE VALEURS DANS DES SOCKETS)
 
@@ -71,7 +74,7 @@ static void fct_cons(void *parameter){
 }
 
 
-// Fonction du producteur //
+// Fonction du producteur - Effectue les acquisition //
 static void fct_prod(void *parameter){
 
 	int error;
@@ -106,14 +109,17 @@ static void fct_prod(void *parameter){
 
 		if( buffNum == 1 ){
 //			printf("PROD: je produit %llu dans la case #%d du buffer #%d    (buffPos = %d)\n", (timer_info.date/C10MSEC - start), i_prod, buffNum, buffPos);
+			// Ecriture de la valeur prélevée dans le buffer 1
 			sharedBuffer_01[i_prod] = (timer_info.date/C10MSEC - start);
 
 		}else if( buffNum == 2 ){
 //			printf("PROD: je produit %llu dans la case #%d du buffer #%d    (buffPos = %d)\n", (timer_info.date/C10MSEC - start), i_prod, buffNum, buffPos);
+			// Ecriture de la valeur prélevée dans le buffer 2
 			sharedBuffer_02[i_prod] = (timer_info.date/C10MSEC - start);
 
 		}else if( buffNum == 3 ){
 //			printf("PROD: je produit %llu dans la case #%d du buffer #%d    (buffPos = %d)\n", (timer_info.date/C10MSEC - start), i_prod, buffNum, buffPos);
+			// Ecriture de la valeur prélevée dans le buffer 3
 			sharedBuffer_03[i_prod] = (timer_info.date/C10MSEC - start);
 		}
 
@@ -127,6 +133,7 @@ static void fct_prod(void *parameter){
 		i_prod += 1;
 		buffPos += 1;
 
+		// Test permettant de changer de buffer si le buffer actuel est plein
 		if( buffPos == BUFFER_SIZE ){
 			buffNum = 2;
 
@@ -136,17 +143,19 @@ static void fct_prod(void *parameter){
 		}else if( buffPos == BUFFER_SIZE*3 ){
 			buffNum = 1;
 			buffPos = 0;
-//			flag = 1;
+////			flag = 1;
 		}
-
+		// Test permettant de reset l'indice i_prod une fois qu'il vaut 650 (i.e qu'un buffer est plein)
 		if( i_prod == BUFFER_SIZE ){
 			i_prod = 0;
-//			flag = 1;
+////			flag = 1;
 		}
-	}
+	}//END WHILE
 	return;
 }
 
+
+// Fonction de récuperation des saisies utilisateur du côté client_PC //
 #define LBUFF 4
 int readlig(int fileDescriptor, char *buffer, int max){
 
@@ -166,6 +175,7 @@ int readlig(int fileDescriptor, char *buffer, int max){
 	return(n);
 }
 
+// Fonction mise à disposition par le serveur (i.e qu'il execute à chaque nouveau socket détecté)
 void * service(void *parameter){
 
 	char buffer[LBUFF];
@@ -185,21 +195,26 @@ void * service(void *parameter){
 //	printf("CLIENT: %s\t size: %d\n", buffer, sizeof(buffer));
 //DEBUG//
 	if( strcmp(buffer, "1") == 0 ){
-//		printf("Hello\n");
+////		printf("Hello\n");
 		printf("buffNum: %d\n", buffNum);
-		write(socketID, "Hello\n", 8);
+
+////////////////////////////////
+//		write(socketID, "Hello\n", 8);
+		write(socketID, sharedBuffer_01, sizeof(sharedBuffer_01) );
+////////////////////////////////
+
 		close(socketID);
 		pthread_exit(NULL);
 
 	}else if( strcmp(buffer, "2") ==  0 ){
-//		printf("from\n");
+////		printf("from\n");
 		printf("buffNum: %d\n", buffNum);
 		write(socketID, "from\n", 7);
 		close(socketID);
 		pthread_exit(NULL);
 
 	}else if( strcmp(buffer, "0") == 0 ){
-//		printf("Nios\n");
+////		printf("Nios\n");
 		printf("buffNum: %d\n", buffNum);
 		write(socketID, "Nios\n", 7);
 		close(socketID);
@@ -228,7 +243,12 @@ int main(int N, char *P[]){
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	printf("Debut du programme\n");
-
+/*		
+	printf("sizeof(SharedBuffer_01) = %d\n", sizeof(sharedBuffer_01) );
+	printf("sizeof(int) = %d\n", sizeof(int) );
+	printf("sizeof(short) = %d\n", sizeof(short) );
+	printf("sizeof(long) = %d\n", sizeof(long) );
+*/		
 	// Creation des Semaphores TR //
 	// semProd //
 	if( rt_sem_create(&semProd, "SemaphoreProd", BUFFER_SIZE, S_FIFO) != 0 ){
@@ -289,9 +309,9 @@ int main(int N, char *P[]){
 		pthread_detach(threadID);
 	}//END FOR
 
-	while(flag != 1){
-		//WAIT
-	}
+////	while(flag != 1){
+////		//WAIT
+////	}
 
 	return 0;
 }//END MAIN

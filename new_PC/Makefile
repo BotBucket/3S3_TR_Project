@@ -1,9 +1,9 @@
 default: client_PC
 
 client_PC: client_PC.c
-	cc -Wall -o client_PC client_PC.c
+	cc -lm -Wall -o client_PC client_PC.c
 clean:
-	rm -f client_PC
+	rm -f client_PC *.xg
 
 
 

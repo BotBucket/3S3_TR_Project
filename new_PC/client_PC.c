@@ -11,18 +11,33 @@
 #include <strings.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <math.h>
 
 struct sockaddr_in Sin = {AF_INET};	//Le reste est nul
 
-#define LBUFFER 100
-char buffer[LBUFFER];
+#define COM_LBUFFER 100
+//#define ACQ_LBUFFER 325*8
+#define ACQ_LBUFFER 650*4
+
+char comBuffer[COM_LBUFFER];
+int acqBuffer[ACQ_LBUFFER];
+int datas[ACQ_LBUFFER];
+
+int fileID;
+char fileBuffer[100];
+
+void writeInFile(char *c){
+	write(fileID, c, strlen(c));
+}
+
 
 int main(int N, char *P[]){
 
 	int sock;
 	int n;
 	struct hostent *h;
-	char userChoice;
 
 	// Vérification des paramètres passés au programme //
 	if(N != 3){
@@ -61,64 +76,58 @@ int main(int N, char *P[]){
 
 	printf("Selectionnez une action :\n");
 	printf("    1.Lancer une acquisition\n");
-	printf("    2.Tracer une courbe avec xgraph\n");
+//	printf("    2.Tracer une courbe avec xgraph\n");
 	printf("    0.Quitter\n");
 
 	// Récupération du choix de l'utilisateur //
 //	userChoice = getchar();
 
-	if( fgets(buffer, LBUFFER, stdin) > 0 ){
-		write(sock, buffer, strlen(buffer));
+	if( fgets(comBuffer, COM_LBUFFER, stdin) > 0 ){
+		write(sock, comBuffer, strlen(comBuffer));
 	}else{
 		fprintf(stderr, "Erreur de saisie !\n");
 		exit(5);
 	}
 
-	n = read(sock, buffer, LBUFFER);
+	n = read(sock, acqBuffer, ACQ_LBUFFER);
 
-	buffer[n] = '\0';
+	printf("n = %d\n", n);
 
-	printf("SERVER: %s\n", buffer);
+	acqBuffer[n] = '\0';
 
 	close(sock);
-
-	return 0;
-/*
-	if( userChoice == '1' ){
-		printf(">> ACQUISITION <<\n");
-
-		if( fgets(buffer, LBUFFER, stdin) > 0){
-			write(sock, buffer, strlen(buffer));
-		}else{
-			fprintf(stderr, "Erreur de saisie !\n");
-			exit(5);
-		}
-
-		n = read(sock, buffer, LBUFFER);
-
-		buffer[n] = '\0';
-
-		printf("Reponse du serveur : %s\n", buffer);
-
-		close(sock);
-
-		return 0;
-
-	}else if( userChoice == '2' ){
-		printf(">> TRACE XGRAPH <<\n");
-		//system("./trace_xgraph.sh");
-		close(sock);
-		return 0;
-
-	}else if( userChoice == '0'){
-		printf(">> QUITTER <<\n");
-		close(sock);
-		return 0;
-
-	}else{
-		printf("Mauvaise saisie... Fin du programme");
-		close(sock);
-		return 0;
+/*	for(i=0 ; i < 650 ; i++){
+		printf("acqBuffer[%d] = %d\n", i, acqBuffer[i]);
 	}
 */
+//	memcpy(datas, acqBuffer, 650);
+/*	for(i=0 ; i < 650 ; i++){
+		printf("datas[%d] = %d\n", i, acqBuffer[i]);
+	}
+*/
+
+	// Ecriture du fichier xgraph //
+	printf("SAVING DATAS \n");
+
+	if( (fileID = creat("sinus.xg",0644)) == -1 ){
+		perror("Erreur creation sinus.xg");
+		//return;
+		return 1;
+	}
+
+	sprintf(fileBuffer, "TitleText: Courbe de sinus\n\"Sin(t)\"\n");
+
+	writeInFile(fileBuffer);
+
+	int i = 0;
+	for(i=0 ; i < 650 ; i++){
+		sprintf(fileBuffer, "%d, %g\n", i, sin((double)acqBuffer[i]*0.01));
+		writeInFile(fileBuffer);
+	}
+	writeInFile("\n");
+	close(fileID);
+
+	system("/usr/bin/xgraph sinus.xg");
+
+	return 0;
 }
