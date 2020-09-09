@@ -19,7 +19,8 @@ struct sockaddr_in Sin = {AF_INET};	//Le reste est nul
 
 #define COM_LBUFFER 100
 //#define ACQ_LBUFFER 325*8
-#define ACQ_LBUFFER 650*4
+//#define ACQ_LBUFFER 650*4
+#define ACQ_LBUFFER 1300*4
 
 char comBuffer[COM_LBUFFER];
 int acqBuffer[ACQ_LBUFFER];
@@ -120,7 +121,7 @@ int main(int N, char *P[]){
 	writeInFile(fileBuffer);
 
 	int i = 0;
-	for(i=0 ; i < 650 ; i++){
+	for(i=0 ; i < 1300 ; i++){
 		sprintf(fileBuffer, "%d, %g\n", i, sin((double)acqBuffer[i]*0.01));
 		writeInFile(fileBuffer);
 	}
