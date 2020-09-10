@@ -35,7 +35,7 @@ void writeInFile(char *c){
 int main(int N, char *P[]){
 
 	int sock;
-	int n;
+	int n, compChar = 0;
 	struct hostent *h;
 
 	// Vérification des paramètres passés au programme //
@@ -79,6 +79,11 @@ int main(int N, char *P[]){
 
 	// Récupération du choix de l'utilisateur //
 	if( fgets(comBuffer, COM_LBUFFER, stdin) > 0 ){
+		if (strcmp(comBuffer, "0\n") == 0){
+			close(sock);
+			printf("EXITING !\n");
+			return 0;
+		}
 		write(sock, comBuffer, strlen(comBuffer));
 	}else{
 		fprintf(stderr, "Erreur de saisie !\n");
@@ -86,8 +91,11 @@ int main(int N, char *P[]){
 	}
 
 	// Récupération des données envoyées par le serveur //
-	n = read(sock, acqBuffer, ACQ_LBUFFER);
-//	printf("n = %d\n", n);
+	while ( compChar < ACQ_LBUFFER && n != -1){
+			n = read(sock, (void *)acqBuffer+compChar, ACQ_LBUFFER);
+			compChar += n;
+			printf("n = %d, read : %d\n", n, compChar);
+	}
 
 	acqBuffer[n] = '\0';
 
